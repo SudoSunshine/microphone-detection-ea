@@ -1,0 +1,56 @@
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# macOS Volume Files
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# macOS Network
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Testing Artifacts
+*.aiff
+*.wav
+mic_test_*.aiff
+mic_test_*.wav
+/tmp/
+*_test_*.txt
+*_test_*.log
+debug.log
+test_results.txt
+afrecord_error_*.txt
+
+# IDE & Editors
+.vscode/
+*.code-workspace
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Backup Files
+*.bak
+*.backup
+*.old
+
+# Personal Notes
+NOTES.md
+TODO.md
+SCRATCH.md
