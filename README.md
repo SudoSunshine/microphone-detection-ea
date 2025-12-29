@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![macOS](https://img.shields.io/badge/macOS-11%2B-blue)](https://www.apple.com/macos/)
 
-A production-ready Jamf Pro Extension Attribute that detects whether a Mac's built-in microphone is physically disabled (hardware kill switch) or functioning normally.
+A Jamf Pro Extension Attribute that detects whether a Mac's built-in microphone is physically disabled (hardware kill switch) or functioning normally.
 
 ## 🎯 Purpose
 
