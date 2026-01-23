@@ -1,4 +1,4 @@
-# Jamf Pro - Built-in Microphone Detection
+# Built-in Microphone Detection Extension Attribute
 
 [![ShellCheck](https://github.com/SudoSunshine/jamf-microphone-detection/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/SudoSunshine/jamf-microphone-detection/actions/workflows/shellcheck.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
