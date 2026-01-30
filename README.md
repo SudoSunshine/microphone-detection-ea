@@ -1,161 +1,102 @@
-# Built-in Microphone Detection Extension Attribute
+# Built-in Microphone Detection for Jamf Pro
 
 ![Shell](https://img.shields.io/badge/shell-bash-yellow.svg)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![macOS](https://img.shields.io/badge/macOS-11%2B-blue)](https://www.apple.com/macos/)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-6.3.0-green.svg)
+![macOS](https://img.shields.io/badge/macOS-11.0+-blue.svg)
+![Jamf Pro](https://img.shields.io/badge/Jamf%20Pro-10.0+-orange.svg)
 
-A Jamf Pro Extension Attribute that detects whether a Mac's built-in microphone is physically disabled (hardware kill switch) or functioning normally.
+An extension attribute that detects physically disabled built-in microphones on macOS. Returns one of five states: working, disabled, restricted, external mic detected, or not applicable.
 
-## 🎯 Purpose
-
-Organizations with high-security requirements often deploy Macs with physical microphone kill switches. This Extension Attribute provides reliable detection of:
-- ✅ Physically disabled built-in microphones
-- ✅ Software-restricted microphones (MDM/TCC)
-- ✅ External microphone usage
-- ✅ Hardware vs software issues
-
-## ✨ Features
-
-- **Multi-layer Detection**: Hardware enumeration + software validation
-- **High Accuracy**: Weighted check system (critical + supportive checks)
-- **Zero Dependencies**: No external tools required (afrecord, timeout, etc.)
-- **Universal Compatibility**: Intel & Apple Silicon | macOS 11-15+
-- **Production Ready**: Shellcheck compliant, fully tested, documented
-
-## 📊 Detection Results
-
-| Result | Description | Use Case |
-|--------|-------------|----------|
-| `Available and Working` | Microphone present and functional | Normal operation |
-| `Unavailable or Disabled` | Hardware kill switch engaged | **Target detection** |
-| `Available but Restricted` | Software block (MDM/TCC/driver) | Review restrictions |
-| `External Microphone Detected` | Built-in disabled, external active | Policy review |
-| `Not Applicable` | Model has no built-in mic (Mac Pro) | Expected |
-
-## 🚀 Quick Start
-
-### Installation in Jamf Pro
-
-1. Navigate to: **Settings → Computer Management → Extension Attributes**
-2. Click **+ New**
-3. Configure:
+## What It Returns
 ```
-   Display Name: Built-in Microphone Status
-   Data Type: String
-   Input Type: Script
+Available and Working          → Microphone present and functional
+Unavailable or Disabled        → Hardware kill switch or physically removed
+Available but Restricted       → Present but blocked by MDM/TCC/driver issue
+External Microphone Detected   → Built-in disabled, external mic active
+Not Applicable                 → No built-in mic (Mac Pro, some Mac minis)
 ```
-4. Paste the contents of `microphone_check.sh`
-5. Save
 
-### Creating a Smart Group
+## Install
 
-Create a Smart Group to track devices with disabled microphones:
+**Jamf Pro:**
+1. Settings → Computer Management → Extension Attributes → New
+2. Display Name: `Built-in Microphone Status` | Data Type: `String` | Input Type: `Script`
+3. Paste `microphone_check.sh` contents → Save
+
+Results appear after next inventory update.
+
+**Smart Group:**
 ```
-Name: Macs with Disabled Built-in Microphones
 Criteria: Built-in Microphone Status | is | Unavailable or Disabled
 ```
 
-## 📖 Documentation
+## How It Works
 
-- [Deployment Guide](docs/DEPLOYMENT.md) - Detailed Jamf Pro setup
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
-- [Testing Guide](docs/TESTING.md) - Validation procedures
+**Hardware checks:**
+- `system_profiler SPAudioDataType` for built-in input devices
+- `ioreg` for AppleHDA/Audio hardware
+- Audio codec capabilities
+- Device tree
 
-## 🧪 Testing
+**Software checks:**
+- CoreAudio daemon running (critical)
+- Input device accessible (critical)
+- Audio drivers loaded (supportive)
+- No MDM restrictions (supportive)
+- No TCC denials (supportive)
+- Low error rate (supportive)
 
-Run the script locally to verify functionality:
+**Logic:**
+Both critical checks + 2 of 4 supportive checks must pass for "Available and Working". Hardware and software validation must agree for high confidence.
+
+## Test Locally
 ```bash
-# Clone the repository
-git clone https://github.com/SudoSunshine/jamf-microphone-detection.git
-cd jamf-microphone-detection
-
-# Make executable
+curl -O https://raw.githubusercontent.com/SudoSunshine/jamf-microphone-detection/main/microphone_check.sh
 chmod +x microphone_check.sh
-
-# Run test
 sudo ./microphone_check.sh
 ```
 
-**Expected output:**
-```xml
-<result>Available and Working</result>
+Expected: `<result>Available and Working</result>`
+
+## Requirements
+
+- macOS 11+ (Intel or Apple Silicon)
+- Jamf Pro with Extension Attribute support
+- No external dependencies
+
+## Files
+```
+microphone_check.sh              Main script
+docs/DEPLOYMENT.md               Deployment details
+docs/TROUBLESHOOTING.md          Common issues
+docs/TESTING.md                  Test scenarios
+examples/test_suite.sh           Validation tests
+examples/smart_group_criteria.xml Smart Group templates
 ```
 
-Run the comprehensive test suite:
-```bash
-chmod +x examples/test_suite.sh
-sudo ./examples/test_suite.sh
-```
+## Technical Details
 
-## 🔍 How It Works
+**Why both hardware and software validation?**
 
-### Layer 1: Hardware Detection
-- Checks `system_profiler` for built-in input devices
-- Validates via `ioreg` for AppleHDA/Audio devices
-- Verifies audio codec input capabilities
-- Examines device tree for hardware declarations
+Single-source checks produce false positives. A crashed CoreAudio daemon causes `system_profiler` to report no microphone despite hardware being present. Multi-layer validation distinguishes hardware vs software issues.
 
-### Layer 2: Software Validation
-**Critical Checks (both must pass):**
-- CoreAudio daemon running
-- Input device accessible via system APIs
+**Tested on:**
+- macOS 11-15 (Big Sur → Sequoia)
+- Intel and Apple Silicon
+- Hardware disabled, MDM restrictions, TCC denials, daemon crashes
 
-**Supportive Checks (2+ must pass):**
-- Audio kernel extensions loaded
-- No MDM microphone restrictions
-- No TCC permission denials
-- Low CoreAudio error rate
+**Performance:**
+Executes in 2-5 seconds, read-only operations, no network calls.
 
-### Decision Matrix
+## Links
 
-| Hardware | Software | Result |
-|----------|----------|--------|
-| ✅ Detected | ✅ Working | Available and Working |
-| ✅ Detected | ❌ Not Working | Available but Restricted |
-| ❌ Not Detected | ✅ Working | External Microphone Detected |
-| ❌ Not Detected | ❌ Not Working | **Unavailable or Disabled** |
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Changelog](CHANGELOG.md)
 
-## 🔧 Requirements
+## License
 
-- **macOS**: 11.0+ (Big Sur through Sequoia)
-- **Jamf Pro**: Any version supporting Extension Attributes
-- **Permissions**: Script runs with elevated privileges via Jamf agent
+MIT - See [LICENSE](LICENSE)
 
-## 📝 Version History
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👤 Author
-
-**Ellie Romero**
-- GitHub: [@SudoSunshine](https://github.com/SudoSunshine)
-
-## 🙏 Acknowledgments
-
-- Developed through iterative testing and refinement
-- Special thanks to the Jamf community
-- Built with security-focused organizations in mind
-
-## ⭐ Support
-
-If you find this Extension Attribute helpful, please consider:
-- ⭐ Starring this repository
-- 🐛 Reporting issues
-- 💡 Suggesting improvements
-- 📖 Improving documentation
-
-## 📬 Contact
-
-- GitHub Issues: [Report a bug or request a feature](https://github.com/SudoSunshine/jamf-microphone-detection/issues)
-
----
-
-**Note**: This tool detects hardware status only. For microphone access permissions and privacy controls, refer to macOS System Settings and your MDM configuration.
+**Author:** Ellie Romero ([@SudoSunshine](https://github.com/SudoSunshine))
